@@ -2,6 +2,7 @@ namespace Orleans.Functional
 
 open System
 open System.Threading.Tasks
+open FSharp.Control.Reactive
 open FSharp.Quotations
 open FSharp.Quotations.Patterns
 open FSharp.Quotations.Evaluator
@@ -53,16 +54,24 @@ type EventSourcedGrain<'state, 'event
     do ensureRecord<'state>()
     do ensureUnion<'event>()
 
-    abstract member Activate: unit -> unit Task
-    abstract member Deactivate: unit -> unit Task
-    abstract member Reduce: 'state -> 'event -> ('state -> 'unit)
+    let activate = Subject<unit>.broadcast
+    let deactivate = Subject<unit>.broadcast
 
-    default __.Activate() = Task.FromResult()
-    default __.Deactivate() = Task.FromResult()
+    member val Activate = activate :> IObservable<_>
+    member val Deactivate = deactivate :> IObservable<_>
 
-    override this.OnActivateAsync() = this.Activate() :> Task
-    override this.OnDeactivateAsync() = this.Deactivate() :> Task
+    abstract member Reduce: 'state -> ('event -> 'state -> unit)
+
+    override __.OnActivateAsync() =
+        Subject.onNext () activate |> ignore
+        Task.CompletedTask
+    override __.OnDeactivateAsync() =
+        Subject.onNext () deactivate |> ignore
+        Task.CompletedTask
     override this.TransitionState (state, event) = this.Reduce state event state
+
+    member this.Dispatch (event: 'event) = Task.FromResult <| this.RaiseEvent event
+    member this.Dispatch (event: 'event list) = Task.FromResult <| this.RaiseEvents event
 
 module private List =
     let some lst =
