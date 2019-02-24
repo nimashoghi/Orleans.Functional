@@ -17,7 +17,6 @@ module Ensure =
     let ensureUnion<'t> () = ensure<'t> FSharpType.IsUnion
     let ensureRecord<'t> () = ensure<'t> FSharpType.IsRecord
 
-
 module Dict =
     let empty<'key, 'value when 'key: equality> = Dictionary<'key, 'value> ()
     let add key value (dict: Dictionary<_, _>) =
