@@ -1,20 +1,17 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
-    <Version>0.0.1</Version>
-    <PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="Types.fs" />
     <Compile Include="Util.fs" />
     <Compile Include="Quotations.fs" />
-    <Compile Include="TypeExtensions.fs" />
     <Compile Include="Library.fs" />
+    <Compile Include="TypeExtensions.fs" />
     <Compile Include="AssemblyInfo.fs" />
-    <None Include="..\..\LICENSE.txt" Pack="true" PackagePath="$(PackageLicenseFile)"/>
+    <None Include="../../LICENSE.txt" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="FSharp.Control.Reactive" Version="4.1.0" />
     <PackageReference Include="FSharp.Quotations.Evaluator" Version="1.1.3" />
     <PackageReference Include="Microsoft.Orleans.Core" Version="2.2.0" />
     <PackageReference Include="Microsoft.Orleans.Core.Abstractions" Version="2.2.0" />
