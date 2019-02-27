@@ -33,7 +33,7 @@ type IGrainBase<'grain when 'grain :> IGrain> =
 type IActivatableGrain =
     inherit IGrainBase
 
-    abstract member IsActive: unit -> bool Task
+    abstract member IsActive: bool Task
     abstract member SetActive: bool -> unit Task
 
 type IActivatableGrain<'grain when 'grain :> IActivatableGrain> =

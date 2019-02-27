@@ -1,6 +1,5 @@
 namespace Orleans.Functional
 
-open System
 open System.Threading.Tasks
 open FSharp.Control.Tasks.V2
 open FSharp.Quotations
@@ -39,7 +38,7 @@ type EventSourcedGrain<'state, 'event
         | IntegerCompoundGrain grain -> IntegerCompound <| grain.GetPrimaryKeyLong ()
         | GuidCompoundGrain grain -> GuidCompound <| grain.GetPrimaryKey ()
 
-    abstract member Reduce: 'state -> 'event -> ('state -> unit)
+    abstract member Reduce: 'state -> ('event -> 'state -> unit)
 
     abstract member OnActivate: unit -> unit Task
     abstract member OnDeactivate: unit -> unit Task
@@ -86,7 +85,7 @@ type EventSourcedGrain<'state, 'event, 'parent
 type IGrainActivityGrain =
     inherit IGrainWithStringKey
 
-    abstract member IsActive: unit -> bool Task
+    abstract member IsActive: bool Task
     abstract member SetActive: bool -> unit Task
 
 [<CLIMutable>]
@@ -100,12 +99,11 @@ type GrainActivityEvent =
 type GrainActivityGrain (identity, runtime, factory) =
     inherit EventSourcedGrain<GrainActivityState, GrainActivityEvent> (identity, runtime, factory)
 
-    override __.Reduce state event =
-        match event with
+    override __.Reduce state = function
         | SetActive value -> Reducer.Update {state with Active = value}
 
     interface IGrainActivityGrain with
-        member this.IsActive () = Task.FromResult this.State.Active
+        member this.IsActive = Task.FromResult this.State.Active
         member this.SetActive value = this.Dispatch (SetActive value)
 
 [<AbstractClass>]
@@ -116,10 +114,10 @@ type ActivatableGrain<'state, 'event
     inherit EventSourcedGrain<'state, 'event> (identity, runtime, factory)
 
     interface IActivatableGrain with
-        member this.IsActive () =
+        member this.IsActive =
             factory
                 .GetGrain<IGrainActivityGrain>(this.IdentityString)
-                .IsActive ()
+                .IsActive
 
         member this.SetActive value =
             factory
@@ -136,10 +134,10 @@ type ActivatableGrain<'state, 'event, 'parent
     inherit EventSourcedGrain<'state, 'event, 'parent> (identity, runtime, factory)
 
     interface IActivatableGrain<'parent> with
-        member this.IsActive () =
+        member this.IsActive =
             (this :> IGrainBase<'parent>)
                 .As<'parent>()
-                .IsActive ()
+                .IsActive
 
         member this.SetActive value =
             (this :> IGrainBase<'parent>)
