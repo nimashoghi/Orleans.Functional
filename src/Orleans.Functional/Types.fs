@@ -29,18 +29,11 @@ type IGrainBase =
 
     abstract member As<'grain when 'grain :> IGrain> : unit -> 'grain Task
 
-type IGrainBase<'grain when 'grain :> IGrain> =
-    inherit IGrainBase
-
 type IActivatableGrain =
     inherit IGrainBase
 
     abstract member IsActive: unit -> bool Task
     abstract member SetActive: bool -> unit Task
-
-type IActivatableGrain<'grain when 'grain :> IActivatableGrain> =
-    inherit IGrainBase<'grain>
-    inherit IActivatableGrain
 
 type IGuidGrain =
     inherit IGrainWithGuidKey

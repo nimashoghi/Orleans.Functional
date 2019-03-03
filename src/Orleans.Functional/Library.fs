@@ -93,13 +93,3 @@ type EventSourcedGrain<'state, 'event
             erasedPrimaryKey this
             |> getGrain<'grain> factory
             |> Task.FromResult
-
-[<AbstractClass>]
-type EventSourcedGrain<'state, 'event, 'parent
-                        when 'state : not struct
-                        and 'state : (new: unit -> 'state)
-                        and 'event : not struct
-                        and 'parent :> IGrain> (factory) =
-    inherit EventSourcedGrain<'state, 'event> (factory)
-
-    interface IGrainBase<'parent>
