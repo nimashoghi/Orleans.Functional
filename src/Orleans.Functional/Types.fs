@@ -1,4 +1,5 @@
-namespace Orleans.Functional.Types
+[<AutoOpen>]
+module Orleans.Functional.Types
 
 open System
 open System.Threading.Tasks
@@ -19,6 +20,9 @@ type GrainId =
 | String of string
 | IntegerCompound of int64 * string
 | GuidCompound of Guid * string
+
+type IWorkerGrain =
+    inherit IGrainWithGuidKey
 
 type IGrainBase =
     inherit IGrain

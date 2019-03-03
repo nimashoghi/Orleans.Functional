@@ -1,8 +1,8 @@
 [<AutoOpen>]
-module Orleans.Functional.Types.Extensions
+module Orleans.Functional.TypeExtensions
 
 open System
-open FSharp.Control.Tasks.V2
+open FSharp.Utils.Tasks
 open Orleans
 open Orleans.Functional.Types
 
@@ -22,6 +22,8 @@ type IGuidCompoundGrain with
     member this.PrimaryKey: Guid * string = this.GetPrimaryKey ()
 
 type IGrainFactory with
+    member this.GetWorker<'t when 't :> IWorkerGrain> () = this.GetGrain<'t> Guid.Empty
+
     member this.Get<'t when 't :> IActivatableGrain and 't :> IGuidGrain> id =
         task {
             let grain = this.GetGrain<'t> id

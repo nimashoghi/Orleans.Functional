@@ -1,5 +1,5 @@
 [<AutoOpen>]
-module Orleans.Functional.Utils
+module internal Orleans.Functional.Utils
 
 open System
 open System.Collections.Generic
@@ -16,16 +16,6 @@ module Ensure =
         then raise (InvalidTypeException typeof<'t>)
     let ensureUnion<'t> () = ensure<'t> FSharpType.IsUnion
     let ensureRecord<'t> () = ensure<'t> FSharpType.IsRecord
-
-module Dict =
-    let empty<'key, 'value when 'key: equality> = Dictionary<'key, 'value> ()
-    let add key value (dict: Dictionary<_, _>) =
-        dict.[key] <- value
-        dict
-    let tryFind key (dict: Dictionary<_, _>) =
-        match dict.TryGetValue key with
-        | true, value -> Some value
-        | _ -> None
 
 let (|IntegerGrain|GuidGrain|StringGrain|IntegerCompoundGrain|GuidCompoundGrain|) (grain: #IGrain) =
     match grain :> IGrain with

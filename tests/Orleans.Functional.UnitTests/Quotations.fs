@@ -1,30 +1,38 @@
 module Orleans.Functional.UnitTests.Quotations
 
+open FSharp.Quotations
 open NUnit.Framework
 open Swensen.Unquote
 
 open Orleans.Functional.Quotations
 
+[<CLIMutable>]
+type State = {
+    Name: string
+}
+
+
 module ``Instance`` =
     [<Test>]
     let ``some test`` () =
-        let myVariable = 1
-        test <@ Option.isSome <| (|Instance|_|) <@ myVariable @> @>
+        let stateInstance = {Name = "Hello"}
+        test <@ Option.isSome <| (|Instance|_|) <@ stateInstance @> @>
 
     [<Test>]
     let ``none test`` () =
-        test <@ Option.isNone <| (|Instance|_|) <@ {| {||} with Name = "Hi" |} @> @>
+        let stateInstance = {Name = "Hello"}
+        test <@ Option.isNone <| (|Instance|_|) <@ { stateInstance with Name = "Hi" } @> @>
 
 module ``RecordSetFields`` =
     [<Test>]
     let ``some test`` () =
-        let state = {|Name = "hello"|}
-        test <@ Option.isSome <| (|RecordSetFields|_|) <@ {|state with Name = "hello"|} @> @>
+        let state = {Name = "hello"}
+        test <@ Option.isSome <| (|RecordSetFields|_|) <@ {state with Name = "hello"} @> @>
 
     [<Test>]
     let ``none test`` () =
-        let myVariable = 1
-        test <@ Option.isNone <| (|RecordSetFields|_|) <@ myVariable @> @>
+        let stateInstance = {Name = "Hello"}
+        test <@ Option.isNone <| (|RecordSetFields|_|) <@ stateInstance @> @>
 
 module ``handleUpdate`` =
     [<CLIMutable>]

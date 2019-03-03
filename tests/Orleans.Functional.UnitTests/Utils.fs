@@ -21,27 +21,6 @@ module ``Ensure`` =
         trap <@ ensureRecord<RecordType> () @>
         raises<InvalidTypeException> <@ ensureRecord<UnionType> () @>
 
-module ``Dict`` =
-    let internal dictEqual lst (dict: IDictionary<'key, 'value>) =
-        dict.Count =! List.length lst
-        for key, value in lst do
-            dict.[key] =! value
-
-    [<Test>]
-    let ``empty`` () =
-        dictEqual [] Dict.empty<int, string>
-
-    [<Test>]
-    let ``add`` () =
-        Dict.add "hello" "world" Dict.empty
-        |> dictEqual ["hello", "world"]
-
-    [<Test>]
-    let ``tryFind`` () =
-        Dict.add "hello" "world" Dict.empty
-        |> Dict.tryFind "hello"
-        =! Some "world"
-
 module ``Grain tests`` =
     let idenfitier = (|IntegerGrain|GuidGrain|StringGrain|IntegerCompoundGrain|GuidCompoundGrain|)
 

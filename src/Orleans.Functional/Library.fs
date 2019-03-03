@@ -1,8 +1,8 @@
 namespace Orleans.Functional
 
 open System.Threading.Tasks
-open FSharp.Control.Tasks.V2
 open FSharp.Quotations
+open FSharp.Utils.Tasks
 open Orleans
 open Orleans.EventSourcing
 
@@ -18,7 +18,31 @@ type Reducer private () =
     ///
     /// **Output Type**
     ///   * A function of type `'state -> unit` that represents the update operation returned.
-    static member Update ([<ReflectedDefinition>] update: Expr<'state>) = handleUpdate<'state> update
+    static member Update ([<ReflectedDefinition>] update: Expr<'state>) = handleUpdate update
+
+[<AbstractClass>]
+type WorkerGrain () =
+    inherit Grain ()
+
+    abstract member OnActivate: unit -> unit Task
+    abstract member OnDeactivate: unit -> unit Task
+
+    default __.OnActivate () = Task.FromResult ()
+    default __.OnDeactivate () = Task.FromResult ()
+
+    override this.OnActivateAsync () =
+        let baseMethodResult = base.OnActivateAsync ()
+        upcast task {
+            do! baseMethodResult
+            do! this.OnActivate ()
+        }
+
+    override this.OnDeactivateAsync () =
+        let baseMethodResult = base.OnDeactivateAsync ()
+        upcast task {
+            do! baseMethodResult
+            do! this.OnDeactivate ()
+        }
 
 [<AbstractClass>]
 type EventSourcedGrain<'state, 'event
@@ -48,18 +72,16 @@ type EventSourcedGrain<'state, 'event
 
     override this.OnActivateAsync () =
         let baseMethodResult = base.OnActivateAsync ()
-        task {
+        upcast task {
             do! baseMethodResult
             do! this.OnActivate ()
         }
-        :> Task
     override this.OnDeactivateAsync () =
         let baseMethodResult = base.OnDeactivateAsync ()
-        task {
+        upcast task {
             do! baseMethodResult
             do! this.OnDeactivate ()
         }
-        :> Task
 
     override this.TransitionState (state, event) = this.Reduce state event state
 

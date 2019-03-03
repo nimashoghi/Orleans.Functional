@@ -111,8 +111,12 @@ Target.create "CountLOC" (fun _ ->
     |> Trace.logf "LOC: %i\n"
 )
 
+Target.create "Reload" ignore
+
 open Fake.Core.TargetOperators
 
 "Build" ==> "MakeNuget"
+"Clean" ==> "Reload"
+"Restore" ==> "Reload"
 
 Target.runOrDefault "Build"
