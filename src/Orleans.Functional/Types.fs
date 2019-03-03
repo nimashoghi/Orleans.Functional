@@ -27,17 +27,15 @@ type IWorkerGrain =
 type IGrainBase =
     inherit IGrain
 
-    abstract member As<'grain when 'grain :> IGrain> : unit -> 'grain
+    abstract member As<'grain when 'grain :> IGrain> : unit -> 'grain Task
 
 type IGrainBase<'grain when 'grain :> IGrain> =
     inherit IGrainBase
 
-    abstract member Resolve: ('grain -> 'result) -> 'result
-
 type IActivatableGrain =
     inherit IGrainBase
 
-    abstract member IsActive: bool Task
+    abstract member IsActive: unit -> bool Task
     abstract member SetActive: bool -> unit Task
 
 type IActivatableGrain<'grain when 'grain :> IActivatableGrain> =
