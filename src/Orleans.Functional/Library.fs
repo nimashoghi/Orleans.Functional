@@ -88,6 +88,8 @@ type EventSourcedGrain<'state, 'event
     member this.Dispatch (event: 'event) = Task.FromResult <| this.RaiseEvent event
     member this.Dispatch (events: 'event list) = Task.FromResult <| this.RaiseEvents events
 
+    member __.State = base.State
+
     interface IGrainBase with
         member this.As<'grain when 'grain :> IGrain> () =
             erasedPrimaryKey this

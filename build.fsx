@@ -80,7 +80,7 @@ Target.create "Projects" (fun _ ->
     |> Array.iter Trace.log
 )
 
-Target.create "MakeNuGet" (fun _ ->
+Target.create "Nuget" (fun _ ->
     srcProjects
     |> Array.map (fun project -> project.FullName)
     |> Array.iter (
@@ -115,7 +115,7 @@ Target.create "Reload" ignore
 
 open Fake.Core.TargetOperators
 
-"Build" ==> "MakeNuget"
+"Build" ==> "Nuget"
 "Clean" ==> "Reload"
 "Restore" ==> "Reload"
 
