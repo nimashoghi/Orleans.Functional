@@ -44,12 +44,29 @@ type WorkerGrain () =
             do! this.OnDeactivate ()
         }
 
+[<AutoOpen>]
+module EventSourcedGrainHeleprs =
+    open System.Reflection
+
+    let tryGetInitializer<'state> () =
+        typeof<'state>.GetProperty (
+            "Initial",
+            BindingFlags.NonPublic ||| BindingFlags.Public ||| BindingFlags.Static ||| BindingFlags.FlattenHierarchy
+        )
+        |> Option.ofObj
+        |> Option.bind (fun property -> tryUnbox<'state> (property.GetValue null))
+        |> Option.map (fun f -> fun () -> f)
+
 [<AbstractClass>]
 type EventSourcedGrain<'state, 'event
-                        when 'state : not struct
-                        and 'state : (new: unit -> 'state)
-                        and 'event : not struct> (factory: IGrainFactory) =
+                        when 'state: not struct
+                        and 'state: (new: unit -> 'state)
+                        and 'event: not struct> (factory: IGrainFactory, ?constructor: unit -> 'state) =
     inherit JournaledGrain<'state, 'event> ()
+
+    let constructor =
+        constructor
+        |> Option.orElse (tryGetInitializer<'state> ())
 
     do ensureRecord<'state> ()
     do ensureUnion<'event> ()
@@ -83,6 +100,13 @@ type EventSourcedGrain<'state, 'event
             do! baseMethodResult
             do! this.OnDeactivate ()
         }
+
+    override __.InstallAdaptor (factory, initialState, grainTypeName, grainStorage, services) =
+        let initialState =
+            match constructor with
+            | Some constructor -> constructor () |> box
+            | None -> initialState
+        base.InstallAdaptor (factory, initialState, grainTypeName, grainStorage, services)
 
     override this.TransitionState (state, event) = this.Reduce state event state
 
