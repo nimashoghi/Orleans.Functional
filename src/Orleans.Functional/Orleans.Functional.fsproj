@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
-    <Version>0.0.2</Version>
+    <Version>0.0.3</Version>
     <PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
   </PropertyGroup>
   <ItemGroup>
@@ -15,10 +15,10 @@
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="FSharp.Quotations.Evaluator" Version="1.1.3" />
-    <PackageReference Include="FSharp.Utils" Version="0.0.2" />
-    <PackageReference Include="Microsoft.Orleans.Core" Version="2.2.0" />
-    <PackageReference Include="Microsoft.Orleans.Core.Abstractions" Version="2.2.0" />
-    <PackageReference Include="Microsoft.Orleans.EventSourcing" Version="2.2.0" />
-    <PackageReference Include="Microsoft.Orleans.Runtime.Abstractions" Version="2.2.0" />
+    <PackageReference Include="FSharp.Utils" Version="0.0.8" />
+    <PackageReference Include="Microsoft.Orleans.Core" Version="2.3.0" />
+    <PackageReference Include="Microsoft.Orleans.Core.Abstractions" Version="2.3.0" />
+    <PackageReference Include="Microsoft.Orleans.EventSourcing" Version="2.3.0" />
+    <PackageReference Include="Microsoft.Orleans.Runtime.Abstractions" Version="2.3.0" />
   </ItemGroup>
 </Project>
