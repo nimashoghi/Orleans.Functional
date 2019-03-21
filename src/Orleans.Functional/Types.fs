@@ -21,18 +21,11 @@ type GrainId =
 | IntegerCompound of int64 * string
 | GuidCompound of Guid * string
 
-type IFsGrain =
-    inherit IGrain
-
-    abstract member Activate: unit -> Task
-    abstract member Deactivate: unit -> Task
-
 type IWorkerGrain =
     inherit IGrainWithGuidKey
-    inherit IFsGrain
 
 type IGrainBase =
-    inherit IFsGrain
+    inherit IGrain
 
     abstract member As<'grain when 'grain :> IGrain> : unit -> 'grain ValueTask
 

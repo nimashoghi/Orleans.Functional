@@ -24,28 +24,24 @@ type Reducer private () =
 type WorkerGrain () =
     inherit Grain ()
 
-    abstract member Activate: unit -> Task
-    abstract member Deactivate: unit -> Task
+    abstract member OnActivate: unit -> Task
+    abstract member OnDeactivate: unit -> Task
 
-    default __.Activate () = Task.CompletedTask
-    default __.Deactivate () = Task.CompletedTask
-
-    interface IFsGrain with
-        member this.Activate () = this.Activate ()
-        member this.Deactivate () = this.Deactivate ()
+    default __.OnActivate () = Task.CompletedTask
+    default __.OnDeactivate () = Task.CompletedTask
 
     override this.OnActivateAsync () =
         let baseMethodResult = base.OnActivateAsync ()
         unitTask {
             do! baseMethodResult
-            do! this.Activate ()
+            do! this.OnActivate ()
         }
 
     override this.OnDeactivateAsync () =
         let baseMethodResult = base.OnDeactivateAsync ()
         unitTask {
             do! baseMethodResult
-            do! this.Deactivate ()
+            do! this.OnDeactivate ()
         }
 
 [<AbstractClass>]
@@ -68,28 +64,24 @@ type EventSourcedGrain<'state, 'event
 
     abstract member Reduce: 'state -> ('event -> 'state -> unit)
 
-    abstract member Activate: unit -> Task
-    abstract member Deactivate: unit -> Task
+    abstract member OnActivate: unit -> Task
+    abstract member OnDeactivate: unit -> Task
 
-    default __.Activate () = Task.CompletedTask
-    default __.Deactivate () = Task.CompletedTask
-
-    interface IFsGrain with
-        member this.Activate () = this.Activate ()
-        member this.Deactivate () = this.Deactivate ()
+    default __.OnActivate () = Task.CompletedTask
+    default __.OnDeactivate () = Task.CompletedTask
 
     override this.OnActivateAsync () =
         let baseMethodResult = base.OnActivateAsync ()
         unitTask {
             do! baseMethodResult
-            do! this.Activate ()
+            do! this.OnActivate ()
         }
 
     override this.OnDeactivateAsync () =
         let baseMethodResult = base.OnDeactivateAsync ()
         unitTask {
             do! baseMethodResult
-            do! this.Deactivate ()
+            do! this.OnDeactivate ()
         }
 
     override this.TransitionState (state, event) = this.Reduce state event state
