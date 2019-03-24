@@ -27,8 +27,6 @@ type IWorkerGrain =
 type IGrainBase =
     inherit IGrain
 
-    abstract member As<'grain when 'grain :> IGrain> : unit -> 'grain ValueTask
-
 type IActivatableGrain =
     inherit IGrainBase
 

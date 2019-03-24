@@ -1,7 +1,7 @@
 module Orleans.Functional.UnitTests.Quotations
 
-open FSharp.Quotations
 open NUnit.Framework
+open FsCheck.NUnit
 open Swensen.Unquote
 
 open Orleans.Functional.Quotations
@@ -41,15 +41,15 @@ module ``handleUpdate`` =
         Value: int
     }
 
-    [<Test>]
-    let ``basic test`` () =
+    [<Property>]
+    let ``basic test`` newName newValue =
         let state = {
             Name = "Hello"
             Value = 1
         }
-        handleUpdate <@ {state with Value = 2} @> state
-        state.Value =! 2
-        state.Name =! "Hello"
+        handleUpdate <@ {state with Name = newName; Value = newValue} @> {state with Name = newName; Value = newValue} state
+        state.Value =! newValue
+        state.Name =! newName
 
     [<Test>]
     let ``basic test string`` () =
@@ -57,6 +57,6 @@ module ``handleUpdate`` =
             Name = "Hello"
             Value = 1
         }
-        handleUpdate <@ {state with Name = "HelloWorld"} @> state
+        handleUpdate <@ {state with Name = "HelloWorld"} @> {state with Name = "HelloWorld"} state
         state.Value =! 1
         state.Name =! "HelloWorld"

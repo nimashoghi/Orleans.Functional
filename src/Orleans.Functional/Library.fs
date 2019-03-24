@@ -1,13 +1,28 @@
+#nowarn "44"
+
 namespace Orleans.Functional
 
+open System
 open System.Threading.Tasks
 open FSharp.Quotations
+open FSharp.Utils.Quotations
 open FSharp.Utils.Tasks
 open Orleans
 open Orleans.EventSourcing
 
 open Orleans.Functional.Quotations
 open Orleans.Functional.Types
+
+open FSharp.Utils.Tasks.TplPrimitives
+
+type ContinuationTaskBuilder (cont: unit -> Task) =
+    inherit AwaitableBuilder ()
+
+    member __.Run (f : unit -> Ply<'u>) =
+        unitTask {
+            let! _ = f ()
+            do! cont ()
+        }
 
 type Reducer private () =
     /// **Description**
@@ -18,7 +33,10 @@ type Reducer private () =
     ///
     /// **Output Type**
     ///   * A function of type `'state -> unit` that represents the update operation returned.
-    static member Update ([<ReflectedDefinition>] update: Expr<'state>) = handleUpdate update
+    static member Update ([<ReflectedDefinition true>] update: Expr<'state>) =
+        match update with
+        | WithValueTyped (newState, expr) -> handleUpdate expr newState
+        | _ -> failwith "Update method needs to be marked as a ReflectedDefinition."
 
 [<AbstractClass>]
 type WorkerGrain () =
@@ -51,22 +69,26 @@ module EventSourcedGrainHeleprs =
     let tryGetInitializer<'state> () =
         typeof<'state>.GetProperty (
             "Initial",
-            BindingFlags.NonPublic ||| BindingFlags.Public ||| BindingFlags.Static ||| BindingFlags.FlattenHierarchy
+            BindingFlags.NonPublic
+            ||| BindingFlags.Public
+            ||| BindingFlags.Static
+            ||| BindingFlags.FlattenHierarchy
         )
-        |> Option.ofObj
-        |> Option.bind (fun property -> tryUnbox<'state> (property.GetValue null))
-        |> Option.map (fun f -> fun () -> f)
+
+exception NoInitializerException
+
+[<Serializable>]
+type EventSourcedGrainState<'state> () =
+    let initializer = tryGetInitializer<'state> ()
+    do
+        if isNull initializer
+        then raise NoInitializerException
+
+    member val Value = unbox<'state> (initializer.GetValue null) with get, set
 
 [<AbstractClass>]
-type EventSourcedGrain<'state, 'event
-                        when 'state: not struct
-                        and 'state: (new: unit -> 'state)
-                        and 'event: not struct> (factory: IGrainFactory, ?constructor: unit -> 'state) =
-    inherit JournaledGrain<'state, 'event> ()
-
-    let constructor =
-        constructor
-        |> Option.orElse (tryGetInitializer<'state> ())
+type EventSourcedGrain<'state, 'event when 'event: not struct> () =
+    inherit JournaledGrain<EventSourcedGrainState<'state>, 'event> ()
 
     do ensureRecord<'state> ()
     do ensureUnion<'event> ()
@@ -101,22 +123,14 @@ type EventSourcedGrain<'state, 'event
             do! this.OnDeactivate ()
         }
 
-    override __.InstallAdaptor (factory, initialState, grainTypeName, grainStorage, services) =
-        let initialState =
-            match constructor with
-            | Some constructor -> constructor () |> box
-            | None -> initialState
-        base.InstallAdaptor (factory, initialState, grainTypeName, grainStorage, services)
-
-    override this.TransitionState (state, event) = this.Reduce state event state
+    override this.TransitionState (state, event) = this.Reduce state.Value event state.Value
 
     member this.Dispatch (event: 'event) = this.RaiseEvent event
     member this.Dispatch (events: 'event list) = this.RaiseEvents events
 
-    member __.State = base.State
+    member __.ConfirmEvents () = base.ConfirmEvents ()
+    member this.confirm = ContinuationTaskBuilder this.ConfirmEvents
 
-    interface IGrainBase with
-        member this.As<'grain when 'grain :> IGrain> () =
-            erasedPrimaryKey this
-            |> getGrain<'grain> factory
-            |> ValueTask<_>
+    member __.State = base.State.Value
+
+    interface IGrainBase
