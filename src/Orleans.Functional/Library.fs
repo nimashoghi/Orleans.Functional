@@ -133,4 +133,7 @@ type EventSourcedGrain<'state, 'event when 'event: not struct> () =
 
     member __.State = base.State.Value
 
+    member __.GetStream<'t> provider ``namespace`` id = base.GetStreamProvider(provider).GetStream<'t>(id, ``namespace``)
+    member __.GetStreamProvider name = base.GetStreamProvider name
+
     interface IGrainBase
