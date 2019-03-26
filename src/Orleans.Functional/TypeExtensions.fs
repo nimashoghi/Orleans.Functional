@@ -21,8 +21,21 @@ type IIntegerCompoundGrain with
 type IGuidCompoundGrain with
     member this.PrimaryKey: Guid * string = this.GetPrimaryKey ()
 
+let rec internal createGrain<'t when 't :> IGuidGrain and 't :> IActivatableGrain> (factory: IGrainFactory) =
+    vtask {
+        let id = Guid.NewGuid ()
+        let grain = factory.GetGrain<'t> id
+        match! grain.IsActive () with
+        | true -> return! createGrain<'t> factory
+        | false ->
+            do! grain.SetActive true
+            return grain
+    }
+
 type IGrainFactory with
     member this.GetWorker<'t when 't :> IWorkerGrain> () = this.GetGrain<'t> Guid.Empty
+
+    member this.New<'t when 't :> IGuidGrain and 't :> IActivatableGrain> () = createGrain<'t> this
 
     member this.Get<'t when 't :> IActivatableGrain and 't :> IGuidGrain> id =
         vtask {
