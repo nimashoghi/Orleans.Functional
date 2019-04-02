@@ -26,19 +26,20 @@ let isCopyExpr (expr: Expr) (expectedProp: PropertyInfo) =
 /// **Description**
 ///     Matches quotations of kind `<@ {instance with Property = value} @>`
 let (|RecordSetFields|_|) (expr: Expr<'state>) =
-    match expr with
-    | NewRecord (``type``, args) when ``type`` = typeof<'state> ->
-        let fields =
-            FSharpType.GetRecordFields typeof<'state>
-            |> Array.toList
-        (args, fields)
-        ||> List.zip
-        |> List.filter (fun (expr, prop) -> not (isCopyExpr expr prop))
-        |> List.map snd
-        |> Some
-    | _ -> None
-
-// TODO: Add precompute
+    let rec run (expr: Expr) =
+        match expr with
+        | Let (_, _, inExpr) -> run inExpr
+        | NewRecord (``type``, args) when ``type`` = typeof<'state> ->
+            let fields =
+                FSharpType.GetRecordFields typeof<'state>
+                |> Array.toList
+            (args, fields)
+            ||> List.zip
+            |> List.filter (fun (expr, prop) -> not (isCopyExpr expr prop))
+            |> List.map snd
+            |> Some
+        | _ -> None
+    run expr
 
 /// **Description**
 ///     Handles the update from a reducer method in a journaled grain.
@@ -49,6 +50,5 @@ let handleUpdate (expr: Expr<'state>) (newState: 'state) (state: 'state) =
     // if we get something like <@ state @>
     | Instance -> ()
     | RecordSetFields props ->
-        for prop in props do
-            prop.SetValue (state, FSharpValue.GetRecordField (newState, prop))
+        for prop in props do prop.SetValue (state, FSharpValue.GetRecordField (newState, prop))
     | _ -> ()

@@ -34,6 +34,17 @@ module ``RecordSetFields`` =
         let stateInstance = {Name = "Hello"}
         test <@ Option.isNone <| (|RecordSetFields|_|) <@ stateInstance @> @>
 
+    type State = {
+        Name: string
+        Client: string voption
+    }
+
+    [<Property>]
+    let ``ValueSome edge case`` (initialName: string) (client: string) =
+        let state = {Name = initialName; Client = ValueNone}
+        (|RecordSetFields|_|) <@ {state with Client = ValueSome client} @>
+        =! Some [typeof<State>.GetProperty "Client"]
+
 module ``handleUpdate`` =
     [<CLIMutable>]
     type State = {
