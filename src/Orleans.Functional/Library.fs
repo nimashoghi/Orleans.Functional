@@ -3,12 +3,15 @@
 namespace Orleans.Functional
 
 open System
+open System.Collections.Generic
 open System.Threading.Tasks
 open FSharp.Quotations
+open FSharp.Reflection
 open FSharp.Utils.Quotations
 open FSharp.Utils.Tasks
 open Orleans
 open Orleans.EventSourcing
+open Orleans.Streams
 
 open Orleans.Functional.Quotations
 open Orleans.Functional.Types
@@ -101,13 +104,16 @@ type EventSourcedGrain<'state, 'event when 'event: not struct> () =
         | IntegerCompoundGrain grain -> IntegerCompound <| grain.GetPrimaryKeyLong ()
         | GuidCompoundGrain grain -> GuidCompound <| grain.GetPrimaryKey ()
 
-    abstract member Reduce: 'state -> ('event -> 'state -> unit)
+    abstract member Reduce: state: 'state -> ('event -> 'state -> unit)
 
     abstract member OnActivate: unit -> Task
     abstract member OnDeactivate: unit -> Task
 
     default __.OnActivate () = Task.CompletedTask
     default __.OnDeactivate () = Task.CompletedTask
+
+    abstract member OnEventsConfirmed: events: 'event [] -> Task
+    default __.OnEventsConfirmed _ = Task.CompletedTask
 
     override this.OnActivateAsync () =
         let baseMethodResult = base.OnActivateAsync ()
@@ -128,7 +134,16 @@ type EventSourcedGrain<'state, 'event when 'event: not struct> () =
     member this.Dispatch (event: 'event) = this.RaiseEvent event
     member this.Dispatch (events: 'event list) = this.RaiseEvents events
 
-    member __.ConfirmEvents () = base.ConfirmEvents ()
+    // TODO: Should this be sequential or concurrent?
+    member this.ConfirmEvents () =
+        let events =
+            this.UnconfirmedEvents
+            |> Seq.toArray
+        let baseConfirmEvents = base.ConfirmEvents ()
+        unitTask {
+            do! baseConfirmEvents
+            do! this.OnEventsConfirmed events
+        }
     member this.confirm = ContinuationTaskBuilder this.ConfirmEvents
 
     member __.State = base.State.Value
@@ -137,3 +152,85 @@ type EventSourcedGrain<'state, 'event when 'event: not struct> () =
     member __.GetStreamProvider name = base.GetStreamProvider name
 
     interface IGrainBase
+
+exception NoStreamAttributeException
+exception NoStreamProviderException
+
+[<AttributeUsage (AttributeTargets.Class, AllowMultiple = false, Inherited = false)>]
+type StreamAttribute (``namespace``: string, ?provider: string) =
+    inherit ImplicitStreamSubscriptionAttribute (``namespace``)
+
+    member val Namespace = ``namespace`` with get, set
+    member val Provider = provider with get, set
+
+[<AttributeUsage (AttributeTargets.Class)>]
+type EventAttribute () =
+    inherit Attribute ()
+
+[<AbstractClass>]
+type StreamedEventSourcedGrain<'state, 'event when 'event: not struct> (?provider: string) as this =
+    inherit EventSourcedGrain<EventSourcedGrainState<'state>, 'event> ()
+
+    let streamAttribute =
+        this
+            .GetType()
+            .GetCustomAttributes(false)
+        |> Array.tryPick (
+            function
+            | :? StreamAttribute as attribute -> Some attribute
+            | _ -> None
+        )
+        |> Option.defaultWith (fun () -> raise NoStreamAttributeException)
+
+    let ``namespace`` = streamAttribute.Namespace
+
+    let provider =
+        provider
+        |> Option.orElse streamAttribute.Provider
+        |> Option.defaultWith (fun () -> raise NoStreamProviderException)
+
+    let validTags =
+        FSharpType.GetUnionCases typeof<'event>
+        |> Array.filter (
+            fun case ->
+                case.GetCustomAttributes ()
+                |> Array.exists (fun attribute -> attribute :? EventAttribute)
+        )
+        |> Array.map (fun case -> case.Tag)
+        |> HashSet
+
+    let eventTagReader = FSharpValue.PreComputeUnionTagReader typeof<'event>
+
+    let isValidEvent (event: 'event) =
+        eventTagReader (box event)
+        |> validTags.Contains
+
+    [<DefaultValue>]
+    val mutable stream: IAsyncStream<'event>
+
+    abstract member OnStreamMessage: event: 'event -> sequenceToken: StreamSequenceToken -> Task
+    default __.OnStreamMessage _ _ = Task.CompletedTask
+
+    override this.OnActivateAsync () =
+        let baseMethodResult = base.OnActivateAsync ()
+
+        unitTask {
+            do! baseMethodResult
+            this.stream <- this.GetStream provider ``namespace`` (this.GetPrimaryKey ())
+            let! handles = this.stream.GetAllSubscriptionHandles ()
+            if handles.Count = 0 then
+                do! this.stream.SubscribeAsync this.OnStreamMessage :> Task
+            else
+                do!
+                    handles
+                    |> Seq.map (fun handle -> handle.ResumeAsync this.OnStreamMessage)
+                    |> Task.WhenAll
+                    :> Task
+        }
+
+    override this.OnEventsConfirmed events =
+        unitTask {
+            for event in events do
+                if isValidEvent event
+                then do! this.stream.OnNextAsync event
+        }

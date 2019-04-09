@@ -2,7 +2,6 @@
 module internal Orleans.Functional.Utils
 
 open System
-open System.Collections.Generic
 open System.Reflection
 open FSharp.Reflection
 open Orleans
