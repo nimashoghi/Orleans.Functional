@@ -3,7 +3,6 @@
 namespace Orleans.Functional
 
 open System
-open System.Collections.Generic
 open System.Threading.Tasks
 open FSharp.Quotations
 open FSharp.Reflection
@@ -90,19 +89,12 @@ type EventSourcedGrainState<'state> () =
     member val Value = unbox<'state> (initializer.GetValue null) with get, set
 
 [<AbstractClass>]
-type EventSourcedGrain<'state, 'event when 'event: not struct> () =
+type EventSourcedGrain<'state, 'event when 'state: not struct and 'event: not struct> () =
     inherit JournaledGrain<EventSourcedGrainState<'state>, 'event> ()
 
-    do ensureRecord<'state> ()
-    do ensureUnion<'event> ()
-
-    let erasedPrimaryKey grain =
-        match grain with
-        | GuidGrain grain -> Guid <| grain.GetPrimaryKey ()
-        | IntegerGrain grain -> Integer <| grain.GetPrimaryKeyLong ()
-        | StringGrain grain -> String <| grain.GetPrimaryKeyString ()
-        | IntegerCompoundGrain grain -> IntegerCompound <| grain.GetPrimaryKeyLong ()
-        | GuidCompoundGrain grain -> GuidCompound <| grain.GetPrimaryKey ()
+    do
+        assert FSharpType.IsRecord typeof<'state>
+        assert FSharpType.IsUnion typeof<'event>
 
     abstract member Reduce: state: 'state -> ('event -> 'state -> unit)
 
@@ -153,57 +145,12 @@ type EventSourcedGrain<'state, 'event when 'event: not struct> () =
 
     interface IGrainBase
 
-exception NoStreamAttributeException
-exception NoStreamProviderException
-
-[<AttributeUsage (AttributeTargets.Class, AllowMultiple = false, Inherited = false)>]
-type StreamAttribute (``namespace``: string, ?provider: string) =
-    inherit ImplicitStreamSubscriptionAttribute (``namespace``)
-
-    member val Namespace = ``namespace`` with get, set
-    member val Provider = provider with get, set
-
-[<AttributeUsage (AttributeTargets.Class)>]
-type EventAttribute () =
-    inherit Attribute ()
+type IStreamEvent =
+    abstract member ShouldStream: unit -> bool
 
 [<AbstractClass>]
-type StreamedEventSourcedGrain<'state, 'event when 'event: not struct> (?provider: string) as this =
-    inherit EventSourcedGrain<EventSourcedGrainState<'state>, 'event> ()
-
-    let streamAttribute =
-        this
-            .GetType()
-            .GetCustomAttributes(false)
-        |> Array.tryPick (
-            function
-            | :? StreamAttribute as attribute -> Some attribute
-            | _ -> None
-        )
-        |> Option.defaultWith (fun () -> raise NoStreamAttributeException)
-
-    let ``namespace`` = streamAttribute.Namespace
-
-    let provider =
-        provider
-        |> Option.orElse streamAttribute.Provider
-        |> Option.defaultWith (fun () -> raise NoStreamProviderException)
-
-    let validTags =
-        FSharpType.GetUnionCases typeof<'event>
-        |> Array.filter (
-            fun case ->
-                case.GetCustomAttributes ()
-                |> Array.exists (fun attribute -> attribute :? EventAttribute)
-        )
-        |> Array.map (fun case -> case.Tag)
-        |> HashSet
-
-    let eventTagReader = FSharpValue.PreComputeUnionTagReader typeof<'event>
-
-    let isValidEvent (event: 'event) =
-        eventTagReader (box event)
-        |> validTags.Contains
+type StreamedEventSourcedGrain<'state, 'event when 'state: not struct and 'event: not struct and 'event :> IStreamEvent> (``namespace``: string, provider : string) =
+    inherit EventSourcedGrain<'state, 'event> ()
 
     [<DefaultValue>]
     val mutable stream: IAsyncStream<'event>
@@ -218,8 +165,8 @@ type StreamedEventSourcedGrain<'state, 'event when 'event: not struct> (?provide
             do! baseMethodResult
             this.stream <- this.GetStream provider ``namespace`` (this.GetPrimaryKey ())
             let! handles = this.stream.GetAllSubscriptionHandles ()
-            if handles.Count = 0 then
-                do! this.stream.SubscribeAsync this.OnStreamMessage :> Task
+            if handles.Count = 0
+            then do! this.stream.SubscribeAsync this.OnStreamMessage :> Task
             else
                 do!
                     handles
@@ -231,6 +178,9 @@ type StreamedEventSourcedGrain<'state, 'event when 'event: not struct> (?provide
     override this.OnEventsConfirmed events =
         unitTask {
             for event in events do
-                if isValidEvent event
+                if event.ShouldStream ()
                 then do! this.stream.OnNextAsync event
         }
+
+    interface IStreamedGrainBase<'event> with
+        member this.GetStream () = ValueTask<_> this.stream

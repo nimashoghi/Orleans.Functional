@@ -1,12 +1,11 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
-    <Version>0.0.9</Version>
+    <Version>0.0.10</Version>
     <PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="Types.fs" />
-    <Compile Include="Utils.fs" />
     <Compile Include="Quotations.fs" />
     <Compile Include="TypeExtensions.fs" />
     <Compile Include="Library.fs" />

@@ -4,6 +4,7 @@ module Orleans.Functional.Types
 open System
 open System.Threading.Tasks
 open Orleans
+open Orleans.Streams
 
 exception InvalidTypeException of Type
 
@@ -26,6 +27,11 @@ type IWorkerGrain =
 
 type IGrainBase =
     inherit IGrain
+
+type IStreamedGrainBase<'event when 'event: not struct> =
+    inherit IGrain
+
+    abstract member GetStream: unit -> IAsyncStream<'event> ValueTask
 
 type IActivatableGrain =
     inherit IGrainBase
@@ -52,3 +58,23 @@ type IIntegerCompoundGrain =
 type IGuidCompoundGrain =
     inherit IGrainWithGuidCompoundKey
     inherit IGrainBase
+
+type IStreamedGuidGrain<'event when 'event : not struct> =
+    inherit IGrainWithGuidKey
+    inherit IStreamedGrainBase<'event>
+
+type IStreamedIntegerGrain<'event when 'event : not struct> =
+    inherit IGrainWithIntegerKey
+    inherit IStreamedGrainBase<'event>
+
+type IStreamedStringGrain<'event when 'event : not struct> =
+    inherit IGrainWithStringKey
+    inherit IStreamedGrainBase<'event>
+
+type IStreamedIntegerCompoundGrain<'event when 'event : not struct> =
+    inherit IGrainWithIntegerCompoundKey
+    inherit IStreamedGrainBase<'event>
+
+type IStreamedGuidCompoundGrain<'event when 'event : not struct> =
+    inherit IGrainWithGuidCompoundKey
+    inherit IStreamedGrainBase<'event>
