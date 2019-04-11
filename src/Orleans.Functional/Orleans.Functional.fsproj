@@ -13,7 +13,7 @@
     <None Include="..\..\LICENSE.txt" Pack="true" PackagePath="$(PackageLicenseFile)" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="FSharp.Utils" Version="0.0.10" />
+    <PackageReference Include="FSharp.Utils" Version="0.0.14" />
     <PackageReference Include="Microsoft.Orleans.Core" Version="2.3.0" />
     <PackageReference Include="Microsoft.Orleans.Core.Abstractions" Version="2.3.0" />
     <PackageReference Include="Microsoft.Orleans.EventSourcing" Version="2.3.0" />
