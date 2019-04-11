@@ -60,21 +60,21 @@ type IGuidCompoundGrain =
     inherit IGrainBase
 
 type IStreamedGuidGrain<'event when 'event : not struct> =
-    inherit IGrainWithGuidKey
+    inherit IGuidGrain
     inherit IStreamedGrainBase<'event>
 
 type IStreamedIntegerGrain<'event when 'event : not struct> =
-    inherit IGrainWithIntegerKey
+    inherit IIntegerGrain
     inherit IStreamedGrainBase<'event>
 
 type IStreamedStringGrain<'event when 'event : not struct> =
-    inherit IGrainWithStringKey
+    inherit IStringGrain
     inherit IStreamedGrainBase<'event>
 
 type IStreamedIntegerCompoundGrain<'event when 'event : not struct> =
-    inherit IGrainWithIntegerCompoundKey
+    inherit IIntegerCompoundGrain
     inherit IStreamedGrainBase<'event>
 
 type IStreamedGuidCompoundGrain<'event when 'event : not struct> =
-    inherit IGrainWithGuidCompoundKey
+    inherit IGuidCompoundGrain
     inherit IStreamedGrainBase<'event>
