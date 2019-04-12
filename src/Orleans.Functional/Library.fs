@@ -17,15 +17,6 @@ open Orleans.Functional.Types
 
 open FSharp.Utils.Tasks.TplPrimitives
 
-type ContinuationTaskBuilder (cont: unit -> Task) =
-    inherit AwaitableBuilder ()
-
-    member __.Run (f : unit -> Ply<'u>) =
-        unitTask {
-            let! _ = f ()
-            do! cont ()
-        }
-
 type Reducer private () =
     /// **Description**
     ///   * Updates the current `EventSourcedGrain`'s internal state using the `update` parameter.
@@ -124,7 +115,10 @@ type EventSourcedGrain<'state, 'event when 'state: not struct and 'event: not st
     override this.TransitionState (state, event) = this.Reduce state.Value event state.Value
 
     member this.Dispatch (event: 'event) = this.RaiseEvent event
-    member this.Dispatch (events: 'event list) = this.RaiseEvents events
+    member this.Dispatch (events: #seq<'event>) = this.RaiseEvents events
+
+    member this.TryDispatch (event: 'event) = this.RaiseConditionalEvent event
+    member this.TryDispatch (events: #seq<'event>) = this.RaiseConditionalEvents events
 
     // TODO: Should this be sequential or concurrent?
     member this.ConfirmEvents () =
@@ -136,7 +130,7 @@ type EventSourcedGrain<'state, 'event when 'state: not struct and 'event: not st
             do! baseConfirmEvents
             do! this.OnEventsConfirmed events
         }
-    member this.confirm = ContinuationTaskBuilder this.ConfirmEvents
+    member this.confirm = ConfirmationBuilder this
 
     member __.State = base.State.Value
 
@@ -144,6 +138,23 @@ type EventSourcedGrain<'state, 'event when 'state: not struct and 'event: not st
     member __.GetStreamProvider name = base.GetStreamProvider name
 
     interface IGrainBase
+
+and ConfirmationBuilder<'state, 'event when 'state: not struct and 'event: not struct> (this: EventSourcedGrain<'state, 'event>) =
+    inherit AwaitableBuilder ()
+
+    member __.Yield (event: 'event) =
+        this.Dispatch event
+        Ply (result = ())
+
+    member __.YieldFrom (events: #seq<'event>) =
+        this.Dispatch events
+        Ply (result = ())
+
+    member __.Run (f : unit -> Ply<'u>) =
+        unitTask {
+            let! _ = f ()
+            do! this.ConfirmEvents ()
+        }
 
 type IStreamEvent =
     abstract member ShouldStream: unit -> bool
