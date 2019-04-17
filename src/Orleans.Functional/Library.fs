@@ -207,3 +207,49 @@ type StreamedEventSourcedGrain<'state, 'event when 'state: not struct and 'event
 
     interface IStreamedGrainBase<'event> with
         member this.GetStream () = ValueTask<_> this.stream
+
+[<AbstractClass>]
+type StreamListenerGrain<'event, 'grain when 'event: not struct and 'grain :> IStreamedGrainBase<'event>> (provider, ``namespace``) =
+    inherit Grain ()
+
+    abstract member OnStreamMessage: event: 'event -> sequenceToken: StreamSequenceToken -> Task
+
+    [<DefaultValue>]
+    val mutable private stream: IAsyncStream<'event>
+    member this.Stream = this.stream
+
+    [<DefaultValue>]
+    val mutable private grain: 'grain
+    member this.Grain = this.grain
+
+    member __.GrainFactory = base.GrainFactory
+
+    member private this.GetStream () =
+        this
+            .GetStreamProvider(provider)
+            .GetStream<'event>(this.GetPrimaryKey (), ``namespace``)
+
+    override this.OnActivateAsync () =
+        let resumeSubscriptionHandles () =
+            uunitTask {
+                let! handles = this.stream.GetAllSubscriptionHandles ()
+                do!
+                    if handles.Count = 0
+                    then this.stream.SubscribeAsync this.OnStreamMessage :> Task
+                    else
+                        handles
+                        |> Seq.map (fun handle -> handle.ResumeAsync this.OnStreamMessage)
+                        |> Task.WhenAll
+                        :> Task
+            }
+
+        let baseMethodResult = base.OnActivateAsync ()
+        unitTask {
+            do! baseMethodResult
+
+            // TODO: Fix this!
+            this.grain <- Unchecked.defaultof<_> // this.GrainFactory.GetGrain<'grain> (this.GetPrimaryKey ())
+            this.stream <- this.GetStream ()
+
+            do! resumeSubscriptionHandles ()
+        }

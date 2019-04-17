@@ -22,17 +22,31 @@ type GrainId =
 | IntegerCompound of int64 * string
 | GuidCompound of Guid * string
 
-type IWorkerGrain =
-    inherit IGrainWithGuidKey
-
 type IGrainBase =
     inherit IGrain
 
-type IStreamedGrainBase<'event when 'event: not struct> =
-    inherit IGrain
+type IWorkerGrainBase =
+    inherit IGrainBase
 
-    abstract member GetStream: unit -> IAsyncStream<'event> ValueTask
+type IGuidWorkerGrain =
+    inherit IGrainWithGuidKey
+    inherit IWorkerGrainBase
 
+type IIntegerWorkerGrain =
+    inherit IGrainWithIntegerKey
+    inherit IWorkerGrainBase
+
+type IStringWorkerGrain =
+    inherit IGrainWithStringKey
+    inherit IWorkerGrainBase
+
+type IIntegerCompoundWorkerGrain =
+    inherit IGrainWithIntegerCompoundKey
+    inherit IWorkerGrainBase
+
+type IGuidCompoundWorkerGrain =
+    inherit IGrainWithGuidCompoundKey
+    inherit IWorkerGrainBase
 type IActivatableGrain =
     inherit IGrainBase
 
@@ -59,6 +73,11 @@ type IGuidCompoundGrain =
     inherit IGrainWithGuidCompoundKey
     inherit IGrainBase
 
+type IStreamedGrainBase<'event when 'event: not struct> =
+    inherit IGrain
+
+    abstract member GetStream: unit -> IAsyncStream<'event> ValueTask
+
 type IStreamedGuidGrain<'event when 'event : not struct> =
     inherit IGuidGrain
     inherit IStreamedGrainBase<'event>
@@ -78,3 +97,26 @@ type IStreamedIntegerCompoundGrain<'event when 'event : not struct> =
 type IStreamedGuidCompoundGrain<'event when 'event : not struct> =
     inherit IGuidCompoundGrain
     inherit IStreamedGrainBase<'event>
+
+type IListenerGrainBase<'event, 'grain when 'event: not struct and 'grain :> IStreamedGrainBase<'event>> =
+    inherit IGrain
+
+type IGuidListenerGrain<'event, 'grain when 'event: not struct and 'grain :> IStreamedGuidGrain<'event>> =
+    inherit IGuidGrain
+    inherit IListenerGrainBase<'event, 'grain>
+
+type IIntegerListenerGrain<'event, 'grain when 'event: not struct and 'grain :> IStreamedIntegerGrain<'event>> =
+    inherit IIntegerGrain
+    inherit IListenerGrainBase<'event, 'grain>
+
+type IStringListenerGrain<'event, 'grain when 'event: not struct and 'grain :> IStreamedStringGrain<'event>> =
+    inherit IStringGrain
+    inherit IListenerGrainBase<'event, 'grain>
+
+type IGuidCompoundListenerGrain<'event, 'grain when 'event: not struct and 'grain :> IStreamedGuidCompoundGrain<'event>> =
+    inherit IGuidCompoundGrain
+    inherit IListenerGrainBase<'event, 'grain>
+
+type IIntegerCompoundListenerGrain<'event, 'grain when 'event: not struct and 'grain :> IStreamedIntegerCompoundGrain<'event>> =
+    inherit IIntegerCompoundGrain
+    inherit IListenerGrainBase<'event, 'grain>
