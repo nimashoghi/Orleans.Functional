@@ -159,8 +159,11 @@ and ConfirmationBuilder<'state, 'event when 'state: not struct and 'event: not s
 type IStreamEvent =
     abstract member ShouldStream: unit -> bool
 
+type IStreamEventAsync =
+    abstract member ShouldStream: unit -> bool ValueTask
+
 [<AbstractClass>]
-type StreamedEventSourcedGrain<'state, 'event when 'state: not struct and 'event: not struct and 'event :> IStreamEvent> (``namespace``: string, provider : string) =
+type StreamedEventSourcedGrain<'state, 'event when 'state: not struct and 'event: not struct> (``namespace``: string, provider : string) =
     inherit EventSourcedGrain<'state, 'event> ()
 
     [<DefaultValue>]
@@ -176,10 +179,10 @@ type StreamedEventSourcedGrain<'state, 'event when 'state: not struct and 'event
             do! baseMethodResult
             this.stream <- this.GetStream provider ``namespace`` (this.GetPrimaryKey ())
             let! handles = this.stream.GetAllSubscriptionHandles ()
-            if handles.Count = 0
-            then do! this.stream.SubscribeAsync this.OnStreamMessage :> Task
-            else
-                do!
+            do!
+                if handles.Count = 0
+                then this.stream.SubscribeAsync this.OnStreamMessage :> Task
+                else
                     handles
                     |> Seq.map (fun handle -> handle.ResumeAsync this.OnStreamMessage)
                     |> Task.WhenAll
@@ -187,10 +190,19 @@ type StreamedEventSourcedGrain<'state, 'event when 'state: not struct and 'event
         }
 
     override this.OnEventsConfirmed events =
+        let shouldStreamEvent (event: 'event) =
+            vtask {
+                match box event with
+                | :? IStreamEvent as streamedEvent -> return streamedEvent.ShouldStream ()
+                | :? IStreamEventAsync as streamedEvent -> return! streamedEvent.ShouldStream ()
+                | _ -> return true
+            }
+
         unitTask {
             for event in events do
-                if event.ShouldStream ()
-                then do! this.stream.OnNextAsync event
+                match! shouldStreamEvent event with
+                | true -> do! this.stream.OnNextAsync event
+                | _ -> ()
         }
 
     interface IStreamedGrainBase<'event> with
