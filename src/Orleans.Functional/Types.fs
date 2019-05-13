@@ -25,28 +25,10 @@ type GrainId =
 type IGrainBase =
     inherit IGrain
 
-type IWorkerGrainBase =
+type IWorkerGrain =
+    inherit IGrainWithGuidKey
     inherit IGrainBase
 
-type IGuidWorkerGrain =
-    inherit IGrainWithGuidKey
-    inherit IWorkerGrainBase
-
-type IIntegerWorkerGrain =
-    inherit IGrainWithIntegerKey
-    inherit IWorkerGrainBase
-
-type IStringWorkerGrain =
-    inherit IGrainWithStringKey
-    inherit IWorkerGrainBase
-
-type IIntegerCompoundWorkerGrain =
-    inherit IGrainWithIntegerCompoundKey
-    inherit IWorkerGrainBase
-
-type IGuidCompoundWorkerGrain =
-    inherit IGrainWithGuidCompoundKey
-    inherit IWorkerGrainBase
 type IActivatableGrain =
     inherit IGrainBase
 
