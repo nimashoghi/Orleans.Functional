@@ -7,6 +7,10 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{97E7C11C
 EndProject
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Orleans.Functional.UnitTests", "tests\Orleans.Functional.UnitTests\Orleans.Functional.UnitTests.fsproj", "{D80A9251-1147-4DEF-B3A3-39E1F1271F97}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{42505161-26EC-400A-A1B3-FF6C8832DA7E}"
+EndProject
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Orleans.Functional", "src\Orleans.Functional\Orleans.Functional.fsproj", "{4FAFCBC3-5700-4C7F-869F-A08461B2F32E}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -32,8 +36,21 @@ Global
 		{D80A9251-1147-4DEF-B3A3-39E1F1271F97}.Release|x64.Build.0 = Release|Any CPU
 		{D80A9251-1147-4DEF-B3A3-39E1F1271F97}.Release|x86.ActiveCfg = Release|Any CPU
 		{D80A9251-1147-4DEF-B3A3-39E1F1271F97}.Release|x86.Build.0 = Release|Any CPU
+		{4FAFCBC3-5700-4C7F-869F-A08461B2F32E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4FAFCBC3-5700-4C7F-869F-A08461B2F32E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4FAFCBC3-5700-4C7F-869F-A08461B2F32E}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{4FAFCBC3-5700-4C7F-869F-A08461B2F32E}.Debug|x64.Build.0 = Debug|Any CPU
+		{4FAFCBC3-5700-4C7F-869F-A08461B2F32E}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{4FAFCBC3-5700-4C7F-869F-A08461B2F32E}.Debug|x86.Build.0 = Debug|Any CPU
+		{4FAFCBC3-5700-4C7F-869F-A08461B2F32E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4FAFCBC3-5700-4C7F-869F-A08461B2F32E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4FAFCBC3-5700-4C7F-869F-A08461B2F32E}.Release|x64.ActiveCfg = Release|Any CPU
+		{4FAFCBC3-5700-4C7F-869F-A08461B2F32E}.Release|x64.Build.0 = Release|Any CPU
+		{4FAFCBC3-5700-4C7F-869F-A08461B2F32E}.Release|x86.ActiveCfg = Release|Any CPU
+		{4FAFCBC3-5700-4C7F-869F-A08461B2F32E}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{D80A9251-1147-4DEF-B3A3-39E1F1271F97} = {97E7C11C-E8EC-4BED-96D1-BB938C93AC64}
+		{4FAFCBC3-5700-4C7F-869F-A08461B2F32E} = {42505161-26EC-400A-A1B3-FF6C8832DA7E}
 	EndGlobalSection
 EndGlobal
